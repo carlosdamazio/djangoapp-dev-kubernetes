@@ -1,0 +1,65 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-pgsql
+  labels:
+      app: django
+spec:
+  selector:
+    app: django
+    tier: pgsql
+  ports:
+  - port: 5432
+  clusterIP: None
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pgsql-pv-claim
+  labels:
+    app: django
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-pgsql
+spec:
+  selector:
+    matchLabels:
+      app: django
+      tier: pgsql
+  template:
+    metadata:
+      labels:
+        app: django
+        tier: pgsql
+    spec:
+      containers:
+      - name: django-pgsql
+        image: postgres:12.0-alpine
+        env:
+        - name: POSTGRES_USER
+          value: hello_django
+        - name: POSTGRES_PASSWORD
+          value: hello_django
+        - name: POSTGRES_DB
+          value: hello_django_dev
+        ports:
+        - containerPort: 5432
+          name: pgsql
+        volumeMounts:
+        - name: pgsql-persistent-storage
+          mountPath: /var/lib/postgresql/data/
+      volumes:
+        - name: pgsql-persistent-storage
+          persistentVolumeClaim:
+            claimName: pgsql-pv-claim

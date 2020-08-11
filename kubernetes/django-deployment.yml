@@ -1,0 +1,77 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: django
+  labels:
+    name: django
+spec:
+  ports:
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30007
+  selector:
+    name: django
+  type: NodePort
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dj-pv-claim
+  labels:
+    name: django
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: django
+  labels:
+    name: django
+spec:
+  selector:
+    matchLabels:
+      name: django
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: django
+    spec:
+      containers:
+      - image: carlosdmz/djangosampleapp
+        name: django
+        command: ["python"]
+        args: ["manage.py", "runserver", "0.0.0.0:8000"]
+        env:
+        - name: DEBUG
+          value: "1"
+        - name: SECRET_KEY
+          value: foo
+        - name: DJANGO_ALLOWED_HOSTS
+          value: localhost 127.0.0.1 172.17.0.2 [::1]
+        - name: SQL_ENGINE
+          value: django.db.backends.postgresql
+        - name: SQL_DATABASE
+          value: hello_django_dev
+        - name: SQL_USER
+          value: hello_django
+        - name: SQL_PASSWORD
+          value: hello_django
+        - name: SQL_HOST
+          value: "172.18.0.4"
+        - name: SQL_PORT
+          value: "5432"
+        - name: DATABASE
+          value: postgres
+        ports:
+        - containerPort: 8000
+          name: django
